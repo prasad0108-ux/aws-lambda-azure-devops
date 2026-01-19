@@ -15,6 +15,7 @@ steps:
 # 1️⃣ Package Lambda code
 # =====================================
 - script: |
+    set -e
     cd lambda
     zip -r function.zip .
   displayName: Package Lambda code
@@ -25,17 +26,20 @@ steps:
 - task: AWSShellScript@1
   displayName: Deploy Lambda Function
   inputs:
-    awsCredentials: aws-eks-connection   # AWS service connection
+    awsCredentials: aws-lambda-connection   # ✅ Dedicated Lambda service connection
     regionName: $(AWS_REGION)
     scriptType: inline
     inlineScript: |
       set -e
 
+      echo "Validating AWS identity"
       aws sts get-caller-identity
 
+      echo "Updating Lambda function code"
       aws lambda update-function-code \
         --function-name $(LAMBDA_FUNCTION_NAME) \
         --zip-file fileb://lambda/function.zip
 
+      echo "Publishing new Lambda version"
       aws lambda publish-version \
         --function-name $(LAMBDA_FUNCTION_NAME)
