@@ -1,0 +1,41 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  AWS_REGION: af-south-1
+  LAMBDA_FUNCTION_NAME: sample-azuredevops-lambda
+
+steps:
+- checkout: self
+
+# =====================================
+# 1️⃣ Package Lambda code
+# =====================================
+- script: |
+    cd lambda
+    zip -r function.zip .
+  displayName: Package Lambda code
+
+# =====================================
+# 2️⃣ Deploy to AWS Lambda
+# =====================================
+- task: AWSShellScript@1
+  displayName: Deploy Lambda Function
+  inputs:
+    awsCredentials: aws-eks-connection   # AWS service connection
+    regionName: $(AWS_REGION)
+    scriptType: inline
+    inlineScript: |
+      set -e
+
+      aws sts get-caller-identity
+
+      aws lambda update-function-code \
+        --function-name $(LAMBDA_FUNCTION_NAME) \
+        --zip-file fileb://lambda/function.zip
+
+      aws lambda publish-version \
+        --function-name $(LAMBDA_FUNCTION_NAME)
